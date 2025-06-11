@@ -407,13 +407,9 @@
                         "role": "system",
                         "content": `Eres CognosGPT, un asistente inteligente. Tu rol principal es ser un ${persona}. Proporciona respuestas claras, detalladas, creativas, precisas y adaptadas al contexto del usuario. Siempre que sea relevante, guía al usuario paso a paso, ofrece ejemplos, y utiliza un tono que refleje tu especialidad. Tu objetivo es ser el mejor asistente posible en cada campo y brindar una experiencia de aprendizaje o resolución de problemas excepcional.`
                     },
-                    // Añadir mensajes previos del chat actual
-                    ...currentChat.messages.map(msg => ({ role: msg.role, content: msg.content })),
-                    // Añadir el mensaje de usuario actual
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
+                    // Añadir mensajes previos del chat actual, que ya incluye el mensaje de usuario actual guardado en saveMessage
+                    ...currentChat.messages.map(msg => ({ role: msg.role, content: msg.content }))
+                    // Se ha eliminado la línea anterior que duplicaba el mensaje de usuario actual.
                 ];
 
                 const response = await fetch(OPENROUTER_API_URL, {
@@ -547,4 +543,5 @@
     </script>
 </body>
 </html>
+
 
