@@ -69,15 +69,50 @@
         /* History panel animation */
         .history-panel {
             transition: opacity 0.3s ease-out;
+            /* Ensure pointer-events are none when not shown to prevent blocking clicks */
+            pointer-events: none;
         }
         .history-panel.show {
             opacity: 1;
-            pointer-events: auto;
+            pointer-events: auto; /* Enable clicks when shown */
         }
         .history-content {
             transition: transform 0.3s ease-out, opacity 0.3s ease-out;
         }
         .history-panel.show .history-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        /* Style for the custom confirmation modal, ensuring it covers everything */
+        .custom-modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999; /* Higher than history panel */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s ease-out;
+        }
+        .custom-modal.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .custom-modal-content {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            text-align: center;
+            max-width: 400px;
+            width: 90%;
+            transform: translateY(-20px);
+            opacity: 0;
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .custom-modal.show .custom-modal-content {
             transform: translateY(0);
             opacity: 1;
         }
@@ -152,7 +187,7 @@
     </div>
 
     <script>
-        // Elementos DOM
+        // DOM Elements
         const chatBox = document.getElementById('chat-box');
         const userInput = document.getElementById('user-input');
         const sendButton = document.getElementById('send-btn');
@@ -166,13 +201,12 @@
         const noChatsMessage = document.getElementById('no-chats-message');
 
         // OpenRouter API Configuration
-        // Para el entorno de Canvas, OPENROUTER_API_KEY puede permanecer como una cadena vacía; Canvas debería inyectarla.
-        // En producción, reemplazarías "" con tu clave API real de OpenRouter.
-        const OPENROUTER_API_KEY = "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
-";
+        // For Canvas environment, OPENROUTER_API_KEY can remain an empty string; Canvas should inject it.
+        // In production, you would replace "" with your actual OpenRouter API Key.
+        const OPENROUTER_API_KEY = "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";
         const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
-        const YOUR_SITE_URL = "https://cognos-gpt.vercel.app/"; // URL de tu sitio para rankings de OpenRouter
-        const YOUR_SITE_NAME = "CognosGPT - Asistente Inteligente"; // Título de tu sitio para rankings de OpenRouter
+        const YOUR_SITE_URL = "https://cognos-gpt.vercel.app/"; // Your site URL for OpenRouter rankings
+        const YOUR_SITE_NAME = "CognosGPT"; // Your site title for OpenRouter rankings
 
         /**
          * Generates a unique ID for chat sessions.
@@ -358,17 +392,24 @@
         async function sendMessage() {
             const prompt = userInput.value.trim();
 
-            if (!prompt) return; // Do nothing if input is empty
+            // Check if the prompt is empty after trimming whitespace.
+            // If it is, provide user feedback and stop the function execution.
+            if (!prompt) {
+                addMessage('Por favor, escribe un mensaje antes de enviar.', 'assistant', true);
+                userInput.value = ''; // Clear input field
+                userInput.style.height = 'auto'; // Reset textarea height
+                return; // Stop execution
+            }
 
             addMessage(prompt, 'user');
-            saveMessage(prompt, 'user'); // Save user message
+            saveMessage(prompt, 'user'); // Save user message immediately for optimistic UI update
 
             const loadingDiv = showLoading(); // Show loading indicator
 
             try {
                 const currentChatId = localStorage.getItem('currentChatId');
                 const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
-                // Retrieve current chat messages excluding the system instruction
+                // Retrieve current chat messages (which now include the latest user prompt)
                 const currentChatMessages = currentChatId && chats[currentChatId] ?
                                             chats[currentChatId].messages.map(msg => ({ role: msg.role, content: msg.content })) :
                                             [];
@@ -438,7 +479,7 @@
                         "role": "system",
                         "content": `Eres CognosGPT, un asistente inteligente. Tu rol principal es ser un ${persona}. Proporciona respuestas claras, detalladas, creativas, precisas y adaptadas al contexto del usuario. Siempre que sea relevante, guía al usuario paso a paso, ofrece ejemplos, y utiliza un tono que refleje tu especialidad. Tu objetivo es ser el mejor asistente posible en cada campo y brindar una experiencia de aprendizaje o resolución de problemas excepcional.`
                     },
-                    // Add previous messages from the current chat (excluding the current user message which is already added in saveMessage)
+                    // Add all current messages from the chat, including the latest user message
                     ...currentChatMessages
                 ];
 
@@ -488,6 +529,7 @@
 
         // Close history panel when clicking outside or on close button
         historyPanel.addEventListener('click', (e) => {
+            // Check if the click occurred directly on the historyPanel background or the close button
             if (e.target === historyPanel || e.target.closest('#close-history')) {
                 historyPanel.classList.remove('show');
                 document.querySelector('.history-content').classList.remove('scale-100', 'opacity-100');
@@ -504,10 +546,10 @@
             if (currentChatId) {
                 // Confirm with a custom modal instead of alert()
                 const modal = document.createElement('div');
-                modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+                modal.className = 'custom-modal'; // Use custom modal class
                 modal.innerHTML = `
-                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl text-center max-w-sm w-11/12">
-                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Confirmar Limpieza de Chat</h3>
+                    <div class="custom-modal-content dark:bg-gray-800 text-gray-800 dark:text-gray-100">
+                        <h3 class="text-xl font-semibold mb-4">Confirmar Limpieza de Chat</h3>
                         <p class="mb-6 text-gray-700 dark:text-gray-300">¿Estás seguro de que quieres limpiar este chat? Se eliminará de tu historial.</p>
                         <div class="flex justify-center space-x-4">
                             <button id="cancel-clear" class="px-5 py-2 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
@@ -516,16 +558,21 @@
                     </div>
                 `;
                 document.body.appendChild(modal);
+                // Show the modal after appending to ensure animations work
+                requestAnimationFrame(() => modal.classList.add('show'));
+
 
                 document.getElementById('cancel-clear').addEventListener('click', () => {
-                    document.body.removeChild(modal);
+                    modal.classList.remove('show');
+                    modal.addEventListener('transitionend', () => modal.remove(), { once: true }); // Remove after animation
                 });
 
                 document.getElementById('confirm-clear').addEventListener('click', () => {
                     deleteChat(currentChatId); // Use the deleteChat function
                     chatBox.innerHTML = '';
                     localStorage.removeItem('currentChatId');
-                    document.body.removeChild(modal);
+                    modal.classList.remove('show');
+                    modal.addEventListener('transitionend', () => modal.remove(), { once: true }); // Remove after animation
                 });
             } else {
                 chatBox.innerHTML = '';
