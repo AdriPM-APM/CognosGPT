@@ -168,22 +168,29 @@
         // OpenRouter API Configuration
         // Para el entorno de Canvas, OPENROUTER_API_KEY puede permanecer como una cadena vacía; Canvas debería inyectarla.
         // En producción, reemplazarías "" con tu clave API real de OpenRouter.
-        const OPENROUTER_API_KEY = "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";
+        const OPENROUTER_API_KEY = "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
+";
         const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
         const YOUR_SITE_URL = "https://cognos-gpt.vercel.app/"; // URL de tu sitio para rankings de OpenRouter
         const YOUR_SITE_NAME = "CognosGPT - Asistente Inteligente"; // Título de tu sitio para rankings de OpenRouter
 
-        // Helper para generar un ID único para los chats
+        /**
+         * Generates a unique ID for chat sessions.
+         * @returns {string} A unique ID.
+         */
         function generateId() {
             return 'chat-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now();
         }
 
-        // Carga el historial de chat desde Local Storage y actualiza el panel de historial
+        /**
+         * Loads chat history from Local Storage and updates the history panel.
+         */
         function loadChatHistory() {
             const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
             const chatIds = Object.keys(chats);
 
-            chatList.innerHTML = ''; // Limpiar lista existente
+            chatList.innerHTML = ''; // Clear existing list
+
             if (chatIds.length === 0) {
                 noChatsMessage.classList.remove('hidden');
                 return;
@@ -191,7 +198,7 @@
                 noChatsMessage.classList.add('hidden');
             }
 
-            // Ordenar chats por marca de tiempo en orden descendente
+            // Sort chats by timestamp in descending order
             chatIds.sort((a, b) => {
                 const dateA = new Date(chats[a].timestamp);
                 const dateB = new Date(chats[b].timestamp);
@@ -213,7 +220,7 @@
                 deleteButton.className = 'p-1 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-800 transition-colors';
                 deleteButton.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
                 deleteButton.onclick = (e) => {
-                    e.stopPropagation(); // Evitar que se cargue el chat al eliminar
+                    e.stopPropagation(); // Prevent loading chat when deleting
                     deleteChat(chatId);
                 };
                 li.appendChild(deleteButton);
@@ -228,23 +235,31 @@
             });
         }
 
-        // Carga un chat específico en la interfaz de chat principal
+        /**
+         * Loads a specific chat into the main chat interface.
+         * @param {string} chatId - The ID of the chat to load.
+         */
         function loadChat(chatId) {
             const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
             const chat = chats[chatId];
 
             if (!chat) return;
 
-            chatBox.innerHTML = ''; // Limpiar la visualización actual del chat
+            chatBox.innerHTML = ''; // Clear current chat display
             chat.messages.forEach(msg => {
                 addMessage(msg.content, msg.role, msg.isError);
             });
 
-            localStorage.setItem('currentChatId', chatId); // Establecer este como el chat activo
-            userInput.value = ''; // Limpiar el campo de entrada
+            localStorage.setItem('currentChatId', chatId); // Set this as the active chat
+            userInput.value = ''; // Clear input field
         }
 
-        // Guarda un mensaje en el chat actual en Local Storage
+        /**
+         * Saves a message to the current chat in Local Storage.
+         * @param {string} content - The content of the message.
+         * @param {string} role - The role of the sender ('user' or 'assistant').
+         * @param {boolean} [isError=false] - True if the message indicates an error.
+         */
         function saveMessage(content, role, isError = false) {
             const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
             let currentChatId = localStorage.getItem('currentChatId');
@@ -252,7 +267,7 @@
             if (!currentChatId || !chats[currentChatId]) {
                 currentChatId = generateId();
                 chats[currentChatId] = {
-                    // Usar el contenido del primer mensaje de usuario como título
+                    // Use the content of the first user message as the title
                     title: role === 'user' && content.length > 30 ? content.substring(0, 30) + '...' : (role === 'user' ? content : 'Nuevo Chat'),
                     timestamp: new Date().toLocaleString(),
                     messages: []
@@ -260,17 +275,20 @@
                 localStorage.setItem('currentChatId', currentChatId);
             }
 
-            // Si es el primer mensaje de usuario de un nuevo chat, usarlo como título
+            // If it's the first user message of a new chat, use it as the title
             if (chats[currentChatId].messages.length === 0 && role === 'user') {
                  chats[currentChatId].title = content.length > 30 ? content.substring(0, 30) + '...' : content;
             }
 
             chats[currentChatId].messages.push({ content, role, isError });
             localStorage.setItem('chatHistory', JSON.stringify(chats));
-            loadChatHistory(); // Refrescar el panel de historial para mostrar el nuevo chat/chat actualizado
+            loadChatHistory(); // Refresh history panel to show new chat/updated chat
         }
 
-        // Elimina un chat específico del historial
+        /**
+         * Deletes a specific chat from history.
+         * @param {string} chatIdToDelete - The ID of the chat to delete.
+         */
         function deleteChat(chatIdToDelete) {
             const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
             const currentChatId = localStorage.getItem('currentChatId');
@@ -279,18 +297,23 @@
                 delete chats[chatIdToDelete];
                 localStorage.setItem('chatHistory', JSON.stringify(chats));
 
-                // Si el chat eliminado era el activo actualmente, limpiar la pantalla de chat principal
+                // If the deleted chat was the currently active one, clear main chat display
                 if (currentChatId === chatIdToDelete) {
                     chatBox.innerHTML = '';
                     localStorage.removeItem('currentChatId');
                 }
-                loadChatHistory(); // Refrescar el panel de historial
+                loadChatHistory(); // Refresh history panel
             }
         }
 
-        // Agrega un div de mensaje al cuadro de chat
+        /**
+         * Adds a message div to the chat box.
+         * @param {string} content - The text content of the message.
+         * @param {string} role - The role of the sender ('user' or 'assistant').
+         * @param {boolean} [isError=false] - True if the message indicates an error.
+         */
         function addMessage(content, role, isError = false) {
-            const isUser = role === 'user'; // Determinar si es un mensaje de usuario
+            const isUser = role === 'user'; // Determine if it's a user message
             const messageDiv = document.createElement('div');
             messageDiv.className = `message p-3 rounded-lg my-2 text-base max-w-[80%] shadow-md ${
                 isUser ? 'user-message bg-blue-600 text-white ml-auto rounded-br-none' :
@@ -299,10 +322,13 @@
             }`;
             messageDiv.textContent = content;
             chatBox.appendChild(messageDiv);
-            chatBox.scrollTop = chatBox.scrollHeight; // Desplazarse al final
+            chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
         }
 
-        // Muestra un indicador de carga en el cuadro de chat
+        /**
+         * Displays a loading indicator in the chat box.
+         * @returns {HTMLElement} The loading message div.
+         */
         function showLoading() {
             const loadingDiv = document.createElement('div');
             loadingDiv.id = 'loading';
@@ -317,31 +343,37 @@
         sendButton.addEventListener('click', sendMessage);
 
         userInput.addEventListener('keydown', (e) => {
-            // Enviar con Ctrl+Enter
+            // Send on Ctrl+Enter
             if (e.ctrlKey && e.key === 'Enter') {
                 sendMessage();
             }
-            // Ajustar la altura del textarea
+            // Adjust textarea height
             userInput.style.height = 'auto';
             userInput.style.height = (userInput.scrollHeight) + 'px';
         });
 
+        /**
+         * Handles sending the user message to the AI and displaying the response.
+         */
         async function sendMessage() {
             const prompt = userInput.value.trim();
 
-            if (!prompt) return; // No hacer nada si la entrada está vacía
+            if (!prompt) return; // Do nothing if input is empty
 
             addMessage(prompt, 'user');
-            saveMessage(prompt, 'user'); // Guardar mensaje de usuario
+            saveMessage(prompt, 'user'); // Save user message
 
-            const loadingDiv = showLoading(); // Mostrar indicador de carga
+            const loadingDiv = showLoading(); // Show loading indicator
 
             try {
                 const currentChatId = localStorage.getItem('currentChatId');
                 const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
-                const currentChat = chats[currentChatId] || { messages: [] };
+                // Retrieve current chat messages excluding the system instruction
+                const currentChatMessages = currentChatId && chats[currentChatId] ?
+                                            chats[currentChatId].messages.map(msg => ({ role: msg.role, content: msg.content })) :
+                                            [];
 
-                // Determinar la persona de la IA basándose en el prompt del usuario
+                // Determine AI persona based on user prompt
                 let persona = "generalista experto"; // Default persona
                 const lowerCasePrompt = prompt.toLowerCase();
 
@@ -401,23 +433,21 @@
                     persona = "asesor de bienestar y salud (solo información general, no médica)";
                 }
 
-
                 const messages = [
                     {
                         "role": "system",
                         "content": `Eres CognosGPT, un asistente inteligente. Tu rol principal es ser un ${persona}. Proporciona respuestas claras, detalladas, creativas, precisas y adaptadas al contexto del usuario. Siempre que sea relevante, guía al usuario paso a paso, ofrece ejemplos, y utiliza un tono que refleje tu especialidad. Tu objetivo es ser el mejor asistente posible en cada campo y brindar una experiencia de aprendizaje o resolución de problemas excepcional.`
                     },
-                    // Añadir mensajes previos del chat actual, que ya incluye el mensaje de usuario actual guardado en saveMessage
-                    ...currentChat.messages.map(msg => ({ role: msg.role, content: msg.content }))
-                    // Se ha eliminado la línea anterior que duplicaba el mensaje de usuario actual.
+                    // Add previous messages from the current chat (excluding the current user message which is already added in saveMessage)
+                    ...currentChatMessages
                 ];
 
                 const response = await fetch(OPENROUTER_API_URL, {
                     method: "POST",
                     headers: {
                         "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                        "HTTP-Referer": YOUR_SITE_URL, // Opcional. URL del sitio para rankings en openrouter.ai.
-                        "X-Title": YOUR_SITE_NAME, // Opcional. Título del sitio para rankings en openrouter.ai.
+                        "HTTP-Referer": YOUR_SITE_URL, // Optional. Site URL for rankings on openrouter.ai.
+                        "X-Title": YOUR_SITE_NAME, // Optional. Site title for rankings on openrouter.ai.
                         "Content-Type": "application/json"
                     },
                     body: JSON.stringify({
@@ -434,9 +464,9 @@
                 const data = await response.json();
                 const aiResponseText = data.choices[0].message.content;
 
-                chatBox.removeChild(loadingDiv); // Eliminar indicador de carga
-                addMessage(aiResponseText, 'assistant'); // Agregar respuesta de la IA al chat
-                saveMessage(aiResponseText, 'assistant'); // Guardar mensaje de la IA en el historial
+                chatBox.removeChild(loadingDiv); // Remove loading indicator
+                addMessage(aiResponseText, 'assistant'); // Add AI response to chat
+                saveMessage(aiResponseText, 'assistant'); // Save AI message to history
 
             } catch (error) {
                 chatBox.removeChild(loadingDiv);
@@ -445,18 +475,18 @@
                 console.error("Error en la llamada a la API:", error);
             }
 
-            userInput.value = ''; // Limpiar el campo de entrada
-            userInput.style.height = 'auto'; // Reiniciar la altura del textarea
+            userInput.value = ''; // Clear input field
+            userInput.style.height = 'auto'; // Reset textarea height
         }
 
-        // Lógica para mostrar el panel de historial
+        // Logic to display history panel
         historyButton.addEventListener('click', () => {
-            loadChatHistory(); // Recargar siempre el historial cuando se abre
+            loadChatHistory(); // Always reload history when opened
             historyPanel.classList.add('show');
             document.querySelector('.history-content').classList.add('scale-100', 'opacity-100');
         });
 
-        // Cerrar el panel de historial al hacer clic fuera o en el botón de cerrar
+        // Close history panel when clicking outside or on close button
         historyPanel.addEventListener('click', (e) => {
             if (e.target === historyPanel || e.target.closest('#close-history')) {
                 historyPanel.classList.remove('show');
@@ -468,11 +498,11 @@
             document.querySelector('.history-content').classList.remove('scale-100', 'opacity-100');
         });
 
-        // Lógica para limpiar el chat actual
+        // Logic to clear current chat
         clearButton.addEventListener('click', () => {
             const currentChatId = localStorage.getItem('currentChatId');
             if (currentChatId) {
-                // Confirmar con un modal personalizado en lugar de alert()
+                // Confirm with a custom modal instead of alert()
                 const modal = document.createElement('div');
                 modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
                 modal.innerHTML = `
@@ -492,7 +522,7 @@
                 });
 
                 document.getElementById('confirm-clear').addEventListener('click', () => {
-                    deleteChat(currentChatId); // Usar la función deleteChat
+                    deleteChat(currentChatId); // Use the deleteChat function
                     chatBox.innerHTML = '';
                     localStorage.removeItem('currentChatId');
                     document.body.removeChild(modal);
@@ -503,23 +533,23 @@
             }
         });
 
-        // Alternar Tema
+        // Toggle Theme
         themeToggle.addEventListener('click', () => {
             const isDark = document.body.classList.contains('dark-theme');
             document.body.classList.toggle('light-theme', isDark);
             document.body.classList.toggle('dark-theme', !isDark);
 
-            // Cambiar icono según el tema
-            if (!isDark) { // Cambiado a tema oscuro
-                themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'); // Icono de luna
-            } else { // Cambiado a tema claro
-                themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z'); // Icono de sol
+            // Change icon based on theme
+            if (!isDark) { // Switched to dark theme
+                themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'); // Moon icon
+            } else { // Switched to light theme
+                themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z'); // Sun icon
             }
         });
 
-        // Inicialización
+        // Initialization
         window.onload = function() {
-            // Establecer el tema inicial basado en la preferencia del sistema o por defecto a claro
+            // Set initial theme based on system preference or default to light
             if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
                 document.body.classList.remove('light-theme');
                 document.body.classList.add('dark-theme');
@@ -532,7 +562,7 @@
             loadChatHistory();
             userInput.focus();
 
-            // Cargar el último chat activo si existe
+            // Load last active chat if exists
             const lastChatId = localStorage.getItem('currentChatId');
             if (lastChatId) {
                 loadChat(lastChatId);
@@ -543,5 +573,4 @@
     </script>
 </body>
 </html>
-
 
