@@ -1,386 +1,392 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>CognosGPT - Tu Asistente IA Avanzado</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-color: #f0f2f5;
-            --chat-bg: #ffffff;
-            --header-bg: #20232A; /* Color oscuro similar a interfaces de IA */
-            --header-text: #ffffff;
-            --user-bubble-bg: #e0f7fa; /* Un azul claro/turquesa suave */
-            --ai-bubble-bg: #f5f5f5; /* Gris muy claro */
-            --text-color: #333333;
-            --input-bg: #ffffff;
-            --input-border: #e0e0e0;
-            --button-bg: #1A73E8; /* Azul más vibrante */
-            --button-hover-bg: #155bbd;
-            --loader-color: #1A73E8;
-            --error-color: #e74c3c;
-        }
-
-        body {
-            font-family: 'Inter', sans-serif;
-            margin: 0;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            overflow: hidden; /* Evita scroll en el body */
-        }
-
-        .chat-container {
-            display: flex;
-            flex-direction: column;
-            width: 100%;
-            max-width: 800px; /* Un poco más ancho para más espacio de chat */
-            height: 95vh; /* Ocupa casi toda la altura */
-            background-color: var(--chat-bg);
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
-            overflow: hidden;
-            position: relative; /* Para posicionamiento absoluto de elementos internos */
-        }
-
-        .chat-header {
-            background-color: var(--header-bg);
-            color: var(--header-text);
-            padding: 18px 25px;
-            font-size: 1.6rem;
-            font-weight: 600;
-            text-align: center;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            z-index: 10; /* Para que esté por encima de los mensajes al hacer scroll */
-        }
-
-        .chat-messages {
-            flex-grow: 1;
-            padding: 20px 25px;
-            overflow-y: auto;
-            display: flex;
-            flex-direction: column;
-            gap: 12px; /* Espacio entre burbujas */
-            scroll-behavior: smooth;
-            -webkit-overflow-scrolling: touch; /* Suavidad en iOS */
-        }
-
-        /* Estilo de burbujas de chat */
-        .message-box {
-            display: flex;
-            align-items: flex-start; /* Alinea el avatar y el contenido */
-            max-width: 90%; /* Las burbujas no ocupan todo el ancho */
-            padding: 12px 18px;
-            border-radius: 20px; /* Bordes más redondeados */
-            line-height: 1.5;
-            word-wrap: break-word;
-            opacity: 0;
-            transform: translateY(10px);
-            animation: fadeInMessage 0.2s ease-out forwards;
-            position: relative; /* Para posicionar el avatar */
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05); /* Sombra ligera */
-        }
-
-        .user-message {
-            align-self: flex-end; /* A la derecha */
-            background-color: var(--user-bubble-bg);
-            color: var(--text-color);
-            border-bottom-right-radius: 4px; /* Un poco menos redondeado en la esquina "puntiaguda" */
-        }
-
-        .ai-message {
-            align-self: flex-start; /* A la izquierda */
-            background-color: var(--ai-bubble-bg);
-            color: var(--text-color);
-            border-bottom-left-radius: 4px;
-        }
-
-        .message-role {
-            font-weight: 600; /* Más énfasis en el nombre */
-            margin-bottom: 4px;
-            font-size: 0.8em;
-            color: #666666;
-        }
-
-        /* Área de input de chat */
-        .chat-input-area {
-            border-top: 1px solid var(--input-border);
-            padding: 15px 25px;
-            display: flex;
-            align-items: flex-end; /* Alinea el textarea y el botón en la parte inferior */
-            background-color: var(--input-bg);
-            position: sticky; /* Se mantiene en la parte inferior */
-            bottom: 0;
-            z-index: 10;
-            box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.05);
-        }
-
-        .chat-input-area textarea {
-            flex-grow: 1;
-            padding: 12px 18px;
-            border: 1px solid var(--input-border);
-            border-radius: 24px; /* Bordes muy redondeados */
-            font-size: 1rem;
-            line-height: 1.5;
-            resize: none;
-            min-height: 48px; /* Altura mínima consistente */
-            max-height: 150px; /* Altura máxima antes de scroll */
-            overflow-y: auto;
-            margin-right: 12px;
-            box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.03); /* Sombra interna sutil */
-        }
-
-        .chat-input-area button {
-            background-color: var(--button-bg);
-            color: white;
-            padding: 12px 22px;
-            border: none;
-            border-radius: 24px;
-            cursor: pointer;
-            font-size: 1rem;
-            font-weight: 500;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            white-space: nowrap;
-        }
-
-        .chat-input-area button:hover {
-            background-color: var(--button-hover-bg);
-        }
-        .chat-input-area button:active {
-            transform: scale(0.98);
-        }
-
-        /* Mensajes de error y loader */
-        .error-message {
-            color: var(--error-color);
-            font-weight: 500;
-            padding: 10px 0;
-            text-align: center;
-            background-color: rgba(231, 76, 60, 0.1);
-            border-radius: 8px;
-            margin: 10px 25px;
-            display: block; /* Siempre visible si hay error */
-            visibility: hidden; /* Controlado por JS */
-            opacity: 0;
-            transition: opacity 0.3s ease, visibility 0.3s ease;
-        }
-        .error-message.show {
-            visibility: visible;
-            opacity: 1;
-        }
-
-        .loader {
-            border: 4px solid rgba(255, 255, 255, 0.3);
-            border-top: 4px solid var(--loader-color);
-            border-radius: 50%;
-            width: 25px;
-            height: 25px;
-            animation: spin 0.8s linear infinite;
-            display: none;
-            margin-left: 15px;
-        }
-
-        /* Animaciones */
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        @keyframes fadeInMessage {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CognosGPT - Asistente Inteligente</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      transition: background 0.3s ease;
+    }
+    .light-theme {
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    }
+    .dark-theme {
+      background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+      color: #e5e7eb;
+    }
+    .chat-container {
+      max-height: 70vh;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+      scrollbar-width: thin;
+      scrollbar-color: #9ca3af #f3f4f6;
+    }
+    .chat-container::-webkit-scrollbar {
+      width: 8px;
+    }
+    .chat-container::-webkit-scrollbar-track {
+      background: #f3f4f6;
+    }
+    .chat-container::-webkit-scrollbar-thumb {
+      background: #9ca3af;
+      border-radius: 4px;
+    }
+    .message {
+      max-width: 80%;
+      margin: 10px;
+      padding: 12px 16px;
+      border-radius: 12px;
+      line-height: 1.5;
+      animation: fadeIn 0.3s ease;
+    }
+    .user-message {
+      background-color: #3b82f6;
+      color: white;
+      margin-left: auto;
+    }
+    .ai-message {
+      background-color: #e5e7eb;
+      color: #1f2937;
+      margin-right: auto;
+    }
+    .dark-theme .ai-message {
+      background-color: #4b5563;
+      color: #e5e7eb;
+    }
+    .loading::after {
+      content: ' .';
+      animation: dots 1.5s infinite;
+    }
+    .history-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 20;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .history-panel.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .history-content {
+      background: white;
+      dark:bg-gray-800;
+      max-width: 600px;
+      width: 90%;
+      max-height: 80vh;
+      overflow-y: auto;
+      border-radius: 12px;
+      padding: 20px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      animation: slideIn 0.3s ease;
+    }
+    .dark-theme .history-content {
+      background: #1f2937;
+    }
+    @keyframes dots {
+      0% { content: ' .'; }
+      33% { content: ' ..'; }
+      66% { content: ' ...'; }
+    }
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { transform: translateY(-20px); opacity: 0; }
+      to { transform: translateY(0); opacity: 1; }
+    }
+  </style>
 </head>
-<body>
-    <div class="chat-container">
-        <div class="chat-header">
-            CognosGPT
-        </div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="message-box ai-message">
-                <div class="message-role">CognosGPT</div>
-                ¡Hola! Soy **CognosGPT**, tu asistente de IA avanzado. Estoy listo para ayudarte con cualquier pregunta. ¡Empecemos!
-            </div>
-        </div>
-        <div class="chat-input-area">
-            <textarea id="userPrompt" placeholder="Escribe tu mensaje aquí..." rows="1"></textarea>
-            <button onclick="sendMessage()">Enviar</button>
-            <div class="loader" id="loader"></div>
-        </div>
-        <div id="errorMessage" class="error-message"></div>
+<body class="light-theme">
+  <div class="container mx-auto p-4 max-w-4xl">
+    <!-- Header -->
+    <header class="flex justify-center items-center mb-8">
+      <div class="text-center flex-1">
+        <h1 class="text-4xl font-bold text-gray-800 dark:text-gray-100">CognosGPT</h1>
+        <p class="text-gray-600 dark:text-gray-400 mt-2">Tu asistente para educación, programación y más</p>
+      </div>
+      <button
+        id="theme-toggle"
+        class="ml-4 p-2 rounded-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-600 transition"
+        aria-label="Cambiar tema"
+      >
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path id="theme-icon" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+        </svg>
+      </button>
+    </header>
+
+    <!-- Chat History Button -->
+    <div class="flex justify-between mb-4">
+      <button
+        id="history-button"
+        class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+        aria-label="Ver chats guardados"
+      >
+        Ver Chats Guardados
+      </button>
+      <button
+        id="clear-button"
+        class="bg-gray-300 dark:bg-gray-600 text-gray-800 dark:text-gray-200 px-4 py-2 rounded-lg hover:bg-gray-400 dark:hover:bg-gray-500 transition"
+        aria-label="Limpiar chat"
+      >
+        Limpiar Chat
+      </button>
     </div>
 
-    <script>
-        // ¡IMPORTANTE! Reemplaza esto con tu clave de API de OpenRouter.
-        // En una aplicación real, esto NO debería estar en el código del cliente.
-        // Debería manejarse en un servidor para mantener la clave segura.
-        const OPENROUTER_API_KEY = "TU_CLAVE_API_OPENROUTER_AQUI"; // <-- PEGA TU CLAVE AQUÍ
+    <!-- Chat Container -->
+    <div class="chat-container bg-white dark:bg-gray-800 rounded-lg shadow-lg p-6 mb-6" role="log" aria-live="polite">
+      <div id="chat-box" class="flex flex-col gap-4">
+        <!-- Messages will be appended here -->
+      </div>
+    </div>
 
-        // Opcionales para OpenRouter si necesitas seguimiento
-        const YOUR_SITE_URL = "https://misitio.com"; // Tu URL (opcional)
-        const YOUR_SITE_NAME = "CognosGPT Web App"; // El nombre de tu sitio (opcional)
+    <!-- Input Form -->
+    <div class="flex gap-2 items-end">
+      <textarea
+        id="user-input"
+        placeholder="Escribe tu pregunta para CognosGPT..."
+        class="flex-1 p-4 rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none h-20"
+        aria-label="Escribe tu mensaje"
+      ></textarea>
+      <button
+        id="send-button"
+        class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition"
+        aria-label="Enviar mensaje"
+      >
+        Enviar
+      </button>
+    </div>
 
-        // La "personalidad" de la IA y las instrucciones internas
-        const aiPersonalityAndInstructions = `Eres una IA altamente avanzada, diseñada para proporcionar respuestas exhaustivas, precisas y contextualmente relevantes. Tu objetivo es ofrecer la máxima calidad y cantidad de información posible, siempre adaptando tu estilo y profundidad al tema. Tu nombre es CognosGPT.
+    <!-- History Panel -->
+    <div class="history-panel" id="history-panel">
+      <div class="history-content">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold text-gray-800 dark:text-gray-200">Chats Guardados</h2>
+          <button id="close-history" class="text-gray-600 dark:text-gray-300">
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+        <ul id="chat-list" class="space-y-2"></ul>
+      </div>
+    </div>
+  </div>
 
-**Principios clave:**
+  <script>
+    const chatBox = document.getElementById('chat-box');
+    const userInput = document.getElementById('user-input');
+    const sendButton = document.getElementById('send-button');
+    const clearButton = document.getElementById('clear-button');
+    const themeToggle = document.getElementById('theme-toggle');
+    const themeIcon = document.getElementById('theme-icon');
+    const historyButton = document.getElementById('history-button');
+    const historyPanel = document.getElementById('history-panel');
+    const closeHistory = document.getElementById('close-history');
+    const chatList = document.getElementById('chat-list');
 
-* **Adaptabilidad de rol:**
-    * Si el tema es educativo (ej. matemáticas, historia, ciencias), asume el rol de un **profesor experto** con la capacidad de explicar conceptos complejos de manera clara, didáctica y con ejemplos. Desglosa la información paso a paso.
-    * Si el tema es de programación, desarrollo de software, algoritmos, o tecnología, asume el rol de un **ingeniero de software sénior o un experto en el campo**, proporcionando soluciones prácticas, código optimizado, explicaciones técnicas detalladas y mejores prácticas.
-    * Para otros temas (ej. creatividad, estrategia, análisis de texto), adopta el rol de un **consultor experimentado o un analista perspicaz**, ofreciendo perspectivas multifacéticas, estrategias bien fundamentadas y análisis críticos.
+    // Generar ID único para chats
+    function generateId() {
+      return 'id-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
+    }
 
-* **Profundidad y Amplitud:** No te limites a respuestas superficiales. Investiga a fondo el tema, cubriendo todos los aspectos relevantes. Si es necesario, pide aclaraciones para asegurar que tu respuesta sea lo más útil posible.
+    // Cargar historial de chats desde localStorage
+    function loadChatHistory() {
+      const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+      chatList.innerHTML = '';
+      Object.keys(chats).forEach(chatId => {
+        const chat = chats[chatId];
+        const li = document.createElement('li');
+        li.className = 'p-2 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-700 cursor-pointer text-gray-800 dark:text-gray-200';
+        li.textContent = `${chat.title || 'Chat sin título'} (${chat.timestamp})`;
+        li.dataset.chatId = chatId;
+        li.addEventListener('click', () => {
+          loadChat(chatId);
+          historyPanel.classList.remove('show');
+        });
+        chatList.appendChild(li);
+      });
+    }
 
-* **Claridad y Precisión:** Utiliza un lenguaje claro y conciso. Evita la jerga innecesaria a menos que sea intrínsecamente parte del tema (ej. términos técnicos en programación). Asegúrate de que la información sea factual y precisa.
+    // Cargar un chat específico
+    function loadChat(chatId) {
+      const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+      const chat = chats[chatId];
+      if (!chat) return;
+      chatBox.innerHTML = '';
+      chat.messages.forEach(({ content, isUser }) => addMessage(content, isUser));
+      localStorage.setItem('currentChatId', chatId);
+    }
 
-* **Estructura y Formato:** Organiza tus respuestas de manera lógica utilizando encabezados, listas, negritas y bloques de código (si aplica). Esto facilita la lectura y la comprensión.
+    // Guardar mensaje en localStorage
+    function saveMessage(content, isUser, chatId = null) {
+      const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+      const currentChatId = chatId || localStorage.getItem('currentChatId') || generateId();
+      
+      if (!chats[currentChatId]) {
+        chats[currentChatId] = {
+          title: content.length > 30 ? content.substring(0, 30) + '...' : content,
+          timestamp: new Date().toLocaleString(),
+          messages: []
+        };
+        localStorage.setItem('currentChatId', currentChatId);
+      }
+      
+      chats[currentChatId].messages.push({ content, isUser });
+      localStorage.setItem('chatHistory', JSON.stringify(chats));
+      loadChatHistory();
+    }
 
-* **Generación de Ideas y Soluciones:** Más allá de responder preguntas, busca activamente proporcionar ideas, soluciones o enfoques innovadores cuando el prompt lo permita.
+    // Agregar mensaje al chat
+    function addMessage(content, isUser) {
+      const messageDiv = document.createElement('div');
+      messageDiv.className = `message ${isUser ? 'user-message' : 'ai-message'}`;
+      messageDiv.textContent = content;
+      chatBox.appendChild(messageDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-* **Interacción:** Si la pregunta es ambigua o crees que puedes dar una mejor respuesta con más información, haz preguntas aclaratorias.
+    // Mostrar indicador de carga
+    function showLoading() {
+      const loadingDiv = document.createElement('div');
+      loadingDiv.id = 'loading';
+      loadingDiv.className = 'message ai-message loading';
+      loadingDiv.textContent = 'CognosGPT está pensando';
+      chatBox.appendChild(loadingDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+      return loadingDiv;
+    }
 
----
+    // Manejar el envío del mensaje
+    sendButton.addEventListener('click', async () => {
+      const prompt = userInput.value.trim();
+      if (!prompt) return;
 
-Ahora, responde a la siguiente pregunta: `;
+      // Agregar mensaje del usuario
+      addMessage(prompt, true);
+      saveMessage(prompt, true);
+      userInput.value = '';
 
-        const chatMessages = document.getElementById('chatMessages');
-        const userPromptInput = document.getElementById('userPrompt');
-        const loader = document.getElementById('loader');
-        const errorMessage = document.getElementById('errorMessage');
+      // Mostrar indicador de carga
+      const loadingDiv = showLoading();
 
-        // Historial de mensajes para enviar en cada solicitud (para que la IA tenga contexto)
-        const messageHistory = [];
+      // Configurar el prompt de CognosGPT
+      const cognosPrompt = `
+        Tú eres CognosGPT, una IA avanzada diseñada para asistir en una amplia gama de temas con respuestas precisas, detalladas y adaptadas al contexto. Tus capacidades incluyen:
+        - **Materias Educativas:** Actúa como un profesor experto, proporcionando explicaciones claras, ejemplos prácticos, analogías y pasos detallados para facilitar la comprensión.
+        - **Programación:** Comportarte como un experto en programación, ofreciendo fragmentos de código funcionales, explicaciones de conceptos, mejores prácticas y soluciones para depuración en diversos lenguajes y frameworks.
+        - **Consultas Generales:** Responde a otros temas con precisión, concisión y profundidad, basándote en una vasta base de conocimiento.
 
-        // Función para ajustar la altura del textarea automáticamente
-        function autoResizeTextarea() {
-            userPromptInput.style.height = 'auto';
-            userPromptInput.style.height = userPromptInput.scrollHeight + 'px';
-        }
+        Adapta tu tono y enfoque según la naturaleza de la consulta:
+        - Para temas educativos, usa un estilo didáctico con ejemplos claros y estructurados.
+        - Para programación, proporciona código comentado, explicaciones técnicas y consejos prácticos.
+        - Para consultas generales, ofrece respuestas completas pero directas, priorizando la claridad.
 
-        userPromptInput.addEventListener('input', autoResizeTextarea);
+        Si la consulta es ambigua o carece de contexto, haz preguntas clarificadoras o asume un contexto razonable para proporcionar una respuesta útil. Siempre busca maximizar la calidad y relevancia de tus respuestas.
 
-        // Enviar mensaje con Enter (Shift + Enter para nueva línea)
-        userPromptInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault(); // Previene el salto de línea por defecto
-                sendMessage();
-            }
+        Consulta del usuario: "${prompt}"
+      `;
+
+      try {
+        const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Bearer <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>', // Inserta tu clave de API aquí
+            'HTTP-Referer': '<YOUR_SITE_URL>', // Inserta la URL de tu sitio aquí
+            'X-Title': 'CognosGPT',
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model: 'deepseek/deepseek-chat-v3-0324:free',
+            messages: [
+              {
+                role: 'user',
+                content: cognosPrompt
+              }
+            ]
+          })
         });
 
-        async function sendMessage() {
-            const userText = userPromptInput.value.trim();
+        if (!response.ok) throw new Error('Error en la respuesta de la API');
 
-            errorMessage.classList.remove('show'); // Ocultar errores previos
+        const data = await response.json();
+        const aiResponse = data.choices[0].message.content;
+        chatBox.removeChild(loadingDiv);
+        addMessage(aiResponse, false);
+        saveMessage(aiResponse, false);
+      } catch (error) {
+        chatBox.removeChild(loadingDiv);
+        addMessage(`Error: ${error.message || 'No se pudo conectar con la API. Verifica tu clave de API o conexión.'}`, false);
+        saveMessage(`Error: ${error.message || 'No se pudo conectar con la API.'}`, false);
+      }
+    });
 
-            if (!OPENROUTER_API_KEY || OPENROUTER_API_KEY === "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") {
-                errorMessage.textContent = 'Error: La clave API no está configurada correctamente en el código JavaScript.';
-                errorMessage.classList.add('show');
-                return;
-            }
-            if (!userText) {
-                errorMessage.textContent = 'Por favor, escribe un mensaje para CognosGPT.';
-                errorMessage.classList.add('show');
-                return;
-            }
+    // Mostrar/ocultar panel de historial
+    historyButton.addEventListener('click', () => {
+      historyPanel.classList.add('show');
+    });
 
-            // Mostrar mensaje del usuario
-            addMessageToChat(userText, 'user');
-            userPromptInput.value = ''; // Limpiar campo de entrada
-            autoResizeTextarea(); // Resetear altura del textarea
-            loader.style.display = 'block'; // Mostrar loader
+    // Cerrar panel al hacer clic fuera
+    historyPanel.addEventListener('click', (e) => {
+      if (e.target === historyPanel) {
+        historyPanel.classList.remove('show');
+      }
+    });
 
-            // Añadir el mensaje del usuario al historial (después de mostrarlo)
-            messageHistory.push({ "role": "user", "content": userText });
+    // Cerrar panel con botón
+    closeHistory.addEventListener('click', () => {
+      historyPanel.classList.remove('show');
+    });
 
-            // Construir el prompt completo para la IA, incluyendo la personalidad y el historial
-            // Se inyecta la personalidad solo en el primer mensaje o como un "system" message si la API lo soporta bien.
-            // Para OpenRouter, es más efectivo poner la personalidad al principio del primer mensaje del 'user'.
-            // Para mantener el contexto, el historial completo se envía.
-            const messagesToSend = [
-                { "role": "user", "content": aiPersonalityAndInstructions + messageHistory[0].content } // Primer mensaje con personalidad
-            ];
-            // Añadir el resto del historial si existe
-            for (let i = 1; i < messageHistory.length; i++) {
-                messagesToSend.push(messageHistory[i]);
-            }
+    // Limpiar chat
+    clearButton.addEventListener('click', () => {
+      chatBox.innerHTML = '';
+      const currentChatId = localStorage.getItem('currentChatId');
+      if (currentChatId) {
+        const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+        delete chats[currentChatId];
+        localStorage.setItem('chatHistory', JSON.stringify(chats));
+        localStorage.removeItem('currentChatId');
+        loadChatHistory();
+      }
+    });
 
-            try {
-                const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-                    method: "POST",
-                    headers: {
-                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
-                        "HTTP-Referer": YOUR_SITE_URL,
-                        "X-Title": YOUR_SITE_NAME,
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({
-                        "model": "deepseek/deepseek-chat-v3-0324:free",
-                        "messages": messagesToSend // Enviar el historial completo para contexto
-                    })
-                });
+    // Cambiar tema
+    themeToggle.addEventListener('click', () => {
+      document.body.classList.toggle('light-theme');
+      document.body.classList.toggle('dark-theme');
+      const isDark = document.body.classList.contains('dark-theme');
+      themeIcon.setAttribute('d', isDark
+        ? 'M21 12.79A9 9 0 1111.21 3a7 7 0 009.79 9.79z'
+        : 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
+    });
 
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(`Error de la API: ${response.status} - ${errorData.message || response.statusText}`);
-                }
+    // Enviar con Ctrl+Enter
+    userInput.addEventListener('keydown', (e) => {
+      if (e.ctrlKey && e.key === 'Enter') {
+        sendButton.click();
+      }
+    });
 
-                const data = await response.json();
-                if (data.choices && data.choices.length > 0) {
-                    const aiResponseContent = data.choices[0].message.content;
-                    addMessageToChat(aiResponseContent, 'ai');
-                    // Añadir la respuesta de la IA al historial
-                    messageHistory.push({ "role": "assistant", "content": aiResponseContent });
-                } else {
-                    addMessageToChat("No se recibió ninguna respuesta de CognosGPT.", 'ai');
-                }
+    // Cargar historial al iniciar
+    loadChatHistory();
 
-            } catch (error) {
-                console.error("Error al enviar el prompt:", error);
-                errorMessage.textContent = `Error: ${error.message}. Verifica tu API Key o la conexión.`;
-                errorMessage.classList.add('show');
-                addMessageToChat("Hubo un error al procesar tu solicitud. Por favor, inténtalo de nuevo.", 'ai');
-            } finally {
-                loader.style.display = 'none'; // Ocultar loader
-                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll al final del chat
-            }
-        }
-
-        function addMessageToChat(text, sender) {
-            const messageBox = document.createElement('div');
-            messageBox.classList.add('message-box');
-            if (sender === 'user') {
-                messageBox.classList.add('user-message');
-                messageBox.innerHTML = `<div class="message-role">Tú</div><div>${text}</div>`;
-            } else {
-                messageBox.classList.add('ai-message');
-                messageBox.innerHTML = `<div class="message-role">CognosGPT</div><div>${text}</div>`;
-            }
-            chatMessages.appendChild(messageBox);
-            // Scroll inmediato y luego animar
-            chatMessages.scrollTop = chatMessages.scrollHeight;
-            setTimeout(() => {
-                messageBox.style.opacity = '1';
-                messageBox.style.transform = 'translateY(0)';
-            }, 10);
-        }
-
-        // Modificación: La personalidad y las instrucciones deben ir en el primer mensaje de usuario
-        // en el historial para que la IA lo tenga en cuenta en toda la conversación.
-        // Si el historial está vacío (primer mensaje), añadir la personalidad.
-        // Si ya hay historial, la IA debe mantener el contexto por sí misma.
-        // Esto es una simplificación; en apps reales se gestionaría el tamaño del historial.
-    </script>
+    // Foco en el textarea al cargar la página
+    userInput.focus();
+  </script>
 </body>
 </html>
