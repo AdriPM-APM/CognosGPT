@@ -1,415 +1,550 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CognosGPT - Asistente Inteligente</title>
-  <style>
-    body {
-      font-family: 'Inter', sans-serif;
-      min-height: 100vh;
-      transition: background 0.3s ease;
-    }
-    .light-theme {
-      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-    }
-    .dark-theme {
-      background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
-      color: #e5e7eb;
-    }
-    .chat-container {
-      max-height: 70vh;
-      overflow-y: auto;
-      scroll-behavior: smooth;
-      scrollbar-width: thin;
-      scrollbar-color: #9ca3af #f3f4f6;
-    }
-    .chat-container::-webkit-scrollbar {
-      width: 8px;
-    }
-    .chat-container::-webkit-scrollbar-track {
-      background: #f3f4f6;
-    }
-    .chat-container::-webkit-scrollbar-thumb {
-      background: #9ca3af;
-      border-radius: 4px;
-    }
-    .message {
-      max-width: 80%;
-      margin: 10px;
-      padding: 12px 16px;
-      border-radius: 12px;
-      line-height: 1.5;
-      animation: fadeIn 0.3s ease;
-    }
-    .user-message {
-      background-color: #3b82f6;
-      color: white;
-      margin-left: auto;
-    }
-    .ai-message {
-      background-color: #e5e7eb;
-      color: #1f2937;
-      margin-right: auto;
-    }
-    .dark-theme .ai-message {
-      background-color: #4b5563;
-      color: #e5e7eb;
-    }
-    .loading::after {
-      content: ' .';
-      animation: dots 1.5s infinite;
-    }
-    .history-panel {
-      position: fixed;
-      top: 0;
-      left: 0;
-      right: 0;
-      bottom: 0;
-      background: rgba(0, 0, 0, 0.5);
-      z-index: 20;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      opacity: 0;
-      pointer-events: none;
-      transition: opacity 0.3s ease;
-    }
-    .history-panel.show {
-      opacity: 1;
-      pointer-events: auto;
-    }
-    .history-content {
-      background: white;
-      dark:bg-gray-800;
-      max-width: 600px;
-      width: 90%;
-      max-height: 80vh;
-      overflow-y: auto;
-      border-radius: 12px;
-      padding: 20px;
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      animation: slideIn 0.3s ease;
-    }
-    .dark-theme .history-content {
-      background: #1f2937;
-    }
-    @keyframes dots {
-      0% { content: ' .'; }
-      33% { content: ' ..'; }
-      66% { content: ' ...'; }
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(10px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    @keyframes slideIn {
-      from { transform: translateY(-20px); opacity: 0; }
-      to { transform: translateY(0); opacity: 1; }
-    }
- </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CognosGPT - Asistente Inteligente</title>
+    <!-- Tailwind CSS CDN for modern styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* Custom scrollbar for chat container */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1); /* Light track for light and dark modes */
+            border-radius: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #9ca3af; /* Gray-400 */
+            border-radius: 4px;
+        }
+
+        .dark-theme .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #4b5563; /* Gray-600 for dark theme */
+        }
+
+        /* Basic theme transitions, Tailwind handles most of it */
+        body {
+            font-family: 'Inter', sans-serif;
+            transition: background 0.3s ease, color 0.3s ease;
+        }
+
+        .light-theme {
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            color: #1f2937;
+        }
+
+        .dark-theme {
+            background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+            color: #e5e7eb;
+        }
+
+        /* Message animations */
+        .message {
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Loading dots animation */
+        .loading::after {
+            content: ' .';
+            animation: dots 1.5s infinite steps(3);
+        }
+
+        @keyframes dots {
+            0% { content: ' .'; }
+            33% { content: ' ..'; }
+            66% { content: ' ...'; }
+            100% { content: ' .'; }
+        }
+
+        /* History panel animation */
+        .history-panel {
+            transition: opacity 0.3s ease-out;
+        }
+        .history-panel.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .history-content {
+            transition: transform 0.3s ease-out, opacity 0.3s ease-out;
+        }
+        .history-panel.show .history-content {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
 </head>
-<body class="light-theme">
-  <div class="container">
-    <header>
-      <div class="text-center">
-        <h3>CognosGPT</h3>
-        <p>Tu asistente para educación, programación y más</p>
-      </div>
-      <button class="theme-toggle" id="theme-toggle" aria-label="Cambiar tema">
-        <svg id="theme-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path id="theme-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
-        </svg>
-      </button>
-    </header>
+<body class="light-theme flex flex-col min-h-screen">
+    <div class="container flex flex-col items-center justify-between p-4 sm:p-6 lg:p-8 w-full max-w-4xl mx-auto flex-grow">
 
-    <div class="chat-actions">
-      <button id="history-btn" class="btn history-btn">Ver Chats Guardados</button>
-      <button id="clear-btn" class="btn clear-btn">Limpiar Chat</button>
-    </div>
+        <!-- Header -->
+        <header class="w-full flex flex-col sm:flex-row items-center justify-between mb-6 p-4 bg-white/10 backdrop-blur-sm rounded-xl shadow-lg border border-white/20">
+            <div class="text-center sm:text-left mb-3 sm:mb-0">
+                <h3 class="text-3xl font-bold text-blue-700 dark:text-blue-300">CognosGPT</h3>
+                <p class="text-sm text-gray-600 dark:text-gray-400">Tu asistente para educación, programación y más</p>
+            </div>
+            <button class="theme-toggle p-2 rounded-full bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200 shadow-md" id="theme-toggle" aria-label="Cambiar tema">
+                <svg id="theme-icon" class="w-6 h-6 text-gray-800 dark:text-gray-200" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <!-- Sun icon path (default) -->
+                    <path id="theme-path" stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+            </button>
+        </header>
 
-    <div class="chat-container" id="chat-box" role="log" aria-live="polite">
-      <!-- Mensajes aparecerán aquí -->
-    </div>
-
-    <div class="input-form">
-      <textarea id="user-input" placeholder="Escribe tu pregunta para CognosGPT..."></textarea>
-      <div class="input-group">
-        <input type="file" id="image-input" accept="image/*">
-        <button id="send-btn" class="btn send-btn">Enviar</button>
-      </div>
-      <div id="image-preview-container" class="hidden">
-        <img id="image-preview" class="image-preview" alt="Vista previa de la imagen">
-      </div>
-    </div>
-
-    <div class="history-panel" id="history-panel">
-      <div class="history-content">
-        <div class="history-header">
-          <h3>Chats Guardados</h3>
-          <button id="close-history" class="close-history">
-            <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+        <!-- Chat Actions -->
+        <div class="chat-actions w-full max-w-3xl flex justify-center space-x-4 mb-4">
+            <button id="history-btn" class="px-6 py-2 rounded-full text-white font-medium shadow-md transition-all duration-200
+                                           bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-600 hover:to-indigo-600 focus:outline-none focus:ring-2 focus:ring-purple-400 focus:ring-opacity-75">
+                Ver Chats Guardados
+            </button>
+            <button id="clear-btn" class="px-6 py-2 rounded-full text-white font-medium shadow-md transition-all duration-200
+                                          bg-gradient-to-r from-red-500 to-orange-500 hover:from-red-600 hover:to-orange-600 focus:outline-none focus:ring-2 focus:ring-red-400 focus:ring-opacity-75">
+                Limpiar Chat
+            </button>
         </div>
-        <ul id="chat-list" class="chat-list"></ul>
-      </div>
+
+        <!-- Chat Container -->
+        <div class="chat-container w-full max-w-3xl flex-grow bg-white/20 backdrop-blur-md rounded-xl shadow-inner p-4 mb-6 overflow-y-auto custom-scrollbar min-h-[200px]" id="chat-box" role="log" aria-live="polite">
+            <!-- Mensajes aparecerán aquí -->
+        </div>
+
+        <!-- Input Form -->
+        <div class="input-form w-full max-w-3xl sticky bottom-4 z-10 flex flex-col items-center gap-4 p-4 bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20">
+            <textarea id="user-input" class="w-full p-3 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500
+                                             dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:placeholder-gray-400 resize-none h-24"
+                      placeholder="Escribe tu pregunta para CognosGPT..."></textarea>
+
+            <div class="input-group flex items-center gap-4 w-full">
+                <button id="send-btn" class="flex-grow px-8 py-3 bg-gradient-to-r from-blue-500 to-sky-500 text-white
+                                              rounded-full font-semibold shadow-lg hover:from-blue-600 hover:to-sky-600
+                                              transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:ring-opacity-75">
+                    Enviar
+                </button>
+            </div>
+        </div>
     </div>
-  </div>
 
-  <script>
-    // Elementos DOM
-    const chatBox = document.getElementById('chat-box');
-    const userInput = document.getElementById('user-input');
-    const imageInput = document.getElementById('image-input');
-    const sendButton = document.getElementById('send-btn');
-    const clearButton = document.getElementById('clear-btn');
-    const themeToggle = document.getElementById('theme-toggle');
-    const themePath = document.getElementById('theme-path');
-    const historyButton = document.getElementById('history-btn');
-    const historyPanel = document.getElementById('history-panel');
-    const closeHistory = document.getElementById('close-history');
-    const chatList = document.getElementById('chat-list');
-    const imagePreview = document.getElementById('image-preview');
-    const imagePreviewContainer = document.getElementById('image-preview-container');
+    <!-- History Panel (Modal) -->
+    <div class="history-panel fixed inset-0 bg-black/50 z-50 flex items-center justify-center opacity-0 pointer-events-none" id="history-panel">
+        <div class="history-content bg-white dark:bg-gray-800 rounded-xl shadow-2xl p-6 w-11/12 max-w-xl max-h-[90vh] overflow-y-auto transform scale-95 opacity-0">
+            <div class="history-header flex justify-between items-center pb-4 border-b border-gray-200 dark:border-gray-700 mb-4">
+                <h3 class="text-2xl font-bold text-gray-800 dark:text-gray-100">Chats Guardados</h3>
+                <button id="close-history" class="p-2 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-600 dark:text-gray-400 transition-colors duration-200">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+            <ul id="chat-list" class="space-y-3">
+                <!-- Chat history items will be loaded here -->
+            </ul>
+            <p id="no-chats-message" class="text-center text-gray-500 dark:text-gray-400 mt-4 hidden">No hay chats guardados.</p>
+        </div>
+    </div>
 
-    // 1. SOLUCIÓN A PROBLEMA DE SEGURIDAD
-    // Nunca expongas API keys en frontend - esto es solo para demostración
-    // En producción deberías usar un backend propio
-    const API_KEY = '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
-';  // Reemplazar con tu key real
-    const API_URL = 'https://openrouter.ai/api/v1/chat/completions';
+    <script>
+        // Elementos DOM
+        const chatBox = document.getElementById('chat-box');
+        const userInput = document.getElementById('user-input');
+        const sendButton = document.getElementById('send-btn');
+        const clearButton = document.getElementById('clear-btn');
+        const themeToggle = document.getElementById('theme-toggle');
+        const themePath = document.getElementById('theme-path');
+        const historyButton = document.getElementById('history-btn');
+        const historyPanel = document.getElementById('history-panel');
+        const closeHistory = document.getElementById('close-history');
+        const chatList = document.getElementById('chat-list');
+        const noChatsMessage = document.getElementById('no-chats-message');
 
-    // Generar ID único para chats
-    function generateId() {
-      return 'id-' + Math.random().toString(36).substr(2, 9) + '-' + Date.now();
-    }
+        // OpenRouter API Configuration
+        // Para el entorno de Canvas, OPENROUTER_API_KEY puede permanecer como una cadena vacía; Canvas debería inyectarla.
+        // En producción, reemplazarías "" con tu clave API real de OpenRouter.
+        const OPENROUTER_API_KEY = "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";
+        const OPENROUTER_API_URL = "https://openrouter.ai/api/v1/chat/completions";
+        const YOUR_SITE_URL = "https://cognos-gpt.vercel.app/"; // URL de tu sitio para rankings de OpenRouter
+        const YOUR_SITE_NAME = "CognosGPT - Asistente Inteligente"; // Título de tu sitio para rankings de OpenRouter
 
-    // Convertir imagen a base64
-    function imageToBase64(file) {
-      return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-    }
+        // Helper para generar un ID único para los chats
+        function generateId() {
+            return 'chat-' + Math.random().toString(36).substring(2, 9) + '-' + Date.now();
+        }
 
-    // Cargar historial de chats
-    function loadChatHistory() {
-      const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
-      chatList.innerHTML = '';
-      
-      Object.keys(chats).forEach(chatId => {
-        const chat = chats[chatId];
-        const li = document.createElement('li');
-        li.textContent = `${chat.title || 'Chat sin título'} (${chat.timestamp})`;
-        li.dataset.chatId = chatId;
-        
-        li.addEventListener('click', () => {
-          loadChat(chatId);
-          historyPanel.classList.remove('show');
+        // Carga el historial de chat desde Local Storage y actualiza el panel de historial
+        function loadChatHistory() {
+            const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+            const chatIds = Object.keys(chats);
+
+            chatList.innerHTML = ''; // Limpiar lista existente
+            if (chatIds.length === 0) {
+                noChatsMessage.classList.remove('hidden');
+                return;
+            } else {
+                noChatsMessage.classList.add('hidden');
+            }
+
+            // Ordenar chats por marca de tiempo en orden descendente
+            chatIds.sort((a, b) => {
+                const dateA = new Date(chats[a].timestamp);
+                const dateB = new Date(chats[b].timestamp);
+                return dateB - dateA;
+            });
+
+            chatIds.forEach(chatId => {
+                const chat = chats[chatId];
+                const li = document.createElement('li');
+                li.className = 'p-3 rounded-lg bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 cursor-pointer transition-colors duration-200 shadow-sm flex justify-between items-center';
+                li.dataset.chatId = chatId;
+
+                const chatInfo = document.createElement('div');
+                chatInfo.innerHTML = `<span class="font-medium">${chat.title || 'Chat sin título'}</span>
+                                      <span class="text-sm text-gray-500 dark:text-gray-400 block">${chat.timestamp}</span>`;
+                li.appendChild(chatInfo);
+
+                const deleteButton = document.createElement('button');
+                deleteButton.className = 'p-1 rounded-full text-red-500 hover:bg-red-100 dark:hover:bg-red-800 transition-colors';
+                deleteButton.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>`;
+                deleteButton.onclick = (e) => {
+                    e.stopPropagation(); // Evitar que se cargue el chat al eliminar
+                    deleteChat(chatId);
+                };
+                li.appendChild(deleteButton);
+
+                li.addEventListener('click', () => {
+                    loadChat(chatId);
+                    historyPanel.classList.remove('show');
+                    document.querySelector('.history-content').classList.remove('scale-100', 'opacity-100');
+                });
+
+                chatList.appendChild(li);
+            });
+        }
+
+        // Carga un chat específico en la interfaz de chat principal
+        function loadChat(chatId) {
+            const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+            const chat = chats[chatId];
+
+            if (!chat) return;
+
+            chatBox.innerHTML = ''; // Limpiar la visualización actual del chat
+            chat.messages.forEach(msg => {
+                addMessage(msg.content, msg.role, msg.isError);
+            });
+
+            localStorage.setItem('currentChatId', chatId); // Establecer este como el chat activo
+            userInput.value = ''; // Limpiar el campo de entrada
+        }
+
+        // Guarda un mensaje en el chat actual en Local Storage
+        function saveMessage(content, role, isError = false) {
+            const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+            let currentChatId = localStorage.getItem('currentChatId');
+
+            if (!currentChatId || !chats[currentChatId]) {
+                currentChatId = generateId();
+                chats[currentChatId] = {
+                    // Usar el contenido del primer mensaje de usuario como título
+                    title: role === 'user' && content.length > 30 ? content.substring(0, 30) + '...' : (role === 'user' ? content : 'Nuevo Chat'),
+                    timestamp: new Date().toLocaleString(),
+                    messages: []
+                };
+                localStorage.setItem('currentChatId', currentChatId);
+            }
+
+            // Si es el primer mensaje de usuario de un nuevo chat, usarlo como título
+            if (chats[currentChatId].messages.length === 0 && role === 'user') {
+                 chats[currentChatId].title = content.length > 30 ? content.substring(0, 30) + '...' : content;
+            }
+
+            chats[currentChatId].messages.push({ content, role, isError });
+            localStorage.setItem('chatHistory', JSON.stringify(chats));
+            loadChatHistory(); // Refrescar el panel de historial para mostrar el nuevo chat/chat actualizado
+        }
+
+        // Elimina un chat específico del historial
+        function deleteChat(chatIdToDelete) {
+            const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+            const currentChatId = localStorage.getItem('currentChatId');
+
+            if (chats[chatIdToDelete]) {
+                delete chats[chatIdToDelete];
+                localStorage.setItem('chatHistory', JSON.stringify(chats));
+
+                // Si el chat eliminado era el activo actualmente, limpiar la pantalla de chat principal
+                if (currentChatId === chatIdToDelete) {
+                    chatBox.innerHTML = '';
+                    localStorage.removeItem('currentChatId');
+                }
+                loadChatHistory(); // Refrescar el panel de historial
+            }
+        }
+
+        // Agrega un div de mensaje al cuadro de chat
+        function addMessage(content, role, isError = false) {
+            const isUser = role === 'user'; // Determinar si es un mensaje de usuario
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message p-3 rounded-lg my-2 text-base max-w-[80%] shadow-md ${
+                isUser ? 'user-message bg-blue-600 text-white ml-auto rounded-br-none' :
+                isError ? 'error-message bg-red-200 text-red-800 dark:bg-red-800 dark:text-red-200 mr-auto' :
+                'ai-message bg-gray-100 text-gray-800 mr-auto rounded-bl-none dark:bg-gray-700 dark:text-gray-100'
+            }`;
+            messageDiv.textContent = content;
+            chatBox.appendChild(messageDiv);
+            chatBox.scrollTop = chatBox.scrollHeight; // Desplazarse al final
+        }
+
+        // Muestra un indicador de carga en el cuadro de chat
+        function showLoading() {
+            const loadingDiv = document.createElement('div');
+            loadingDiv.id = 'loading';
+            loadingDiv.className = 'message ai-message loading p-3 rounded-lg my-2 text-base max-w-[80%] shadow-md mr-auto rounded-bl-none bg-gray-100 dark:bg-gray-700 dark:text-gray-100';
+            loadingDiv.textContent = 'CognosGPT está pensando';
+            chatBox.appendChild(loadingDiv);
+            chatBox.scrollTop = chatBox.scrollHeight;
+            return loadingDiv;
+        }
+
+        // Event Listeners
+        sendButton.addEventListener('click', sendMessage);
+
+        userInput.addEventListener('keydown', (e) => {
+            // Enviar con Ctrl+Enter
+            if (e.ctrlKey && e.key === 'Enter') {
+                sendMessage();
+            }
+            // Ajustar la altura del textarea
+            userInput.style.height = 'auto';
+            userInput.style.height = (userInput.scrollHeight) + 'px';
         });
-        
-        chatList.appendChild(li);
-      });
-    }
 
-    // Cargar un chat específico
-    function loadChat(chatId) {
-      const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
-      const chat = chats[chatId];
-      
-      if (!chat) return;
-      
-      chatBox.innerHTML = '';
-      chat.messages.forEach(msg => {
-        addMessage(msg.content, msg.isUser, msg.isError);
-      });
-      
-      localStorage.setItem('currentChatId', chatId);
-      imagePreviewContainer.classList.add('hidden');
-    }
+        async function sendMessage() {
+            const prompt = userInput.value.trim();
 
-    // Guardar mensaje
-    function saveMessage(content, isUser, isError = false, chatId = null) {
-      const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
-      const currentChatId = chatId || localStorage.getItem('currentChatId') || generateId();
+            if (!prompt) return; // No hacer nada si la entrada está vacía
 
-      if (!chats[currentChatId]) {
-        chats[currentChatId] = {
-          title: content.length > 30 ? content.substring(0, 30) + '...' : content,
-          timestamp: new Date().toLocaleString(),
-          messages: []
+            addMessage(prompt, 'user');
+            saveMessage(prompt, 'user'); // Guardar mensaje de usuario
+
+            const loadingDiv = showLoading(); // Mostrar indicador de carga
+
+            try {
+                const currentChatId = localStorage.getItem('currentChatId');
+                const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
+                const currentChat = chats[currentChatId] || { messages: [] };
+
+                // Determinar la persona de la IA basándose en el prompt del usuario
+                let persona = "generalista experto"; // Default persona
+                const lowerCasePrompt = prompt.toLowerCase();
+
+                if (lowerCasePrompt.includes("programación") || lowerCasePrompt.includes("código") ||
+                    lowerCasePrompt.includes("desarrollo") || lowerCasePrompt.includes("javascript") ||
+                    lowerCasePrompt.includes("python") || lowerCasePrompt.includes("html") ||
+                    lowerCasePrompt.includes("css") || lowerCasePrompt.includes("bug") ||
+                    lowerCasePrompt.includes("depurar") || lowerCasePrompt.includes("algoritmo") ||
+                    lowerCasePrompt.includes("framework")) {
+                    persona = "programador experto y depurador";
+                } else if (lowerCasePrompt.includes("educación") || lowerCasePrompt.includes("estudio") ||
+                           lowerCasePrompt.includes("aprender") || lowerCasePrompt.includes("profesor") ||
+                           lowerCasePrompt.includes("clase") || lowerCasePrompt.includes("académico") ||
+                           lowerCasePrompt.includes("curso") || lowerCasePrompt.includes("examen") ||
+                           lowerCasePrompt.includes("tutor")) {
+                    persona = "profesor y tutor experto";
+                } else if (lowerCasePrompt.includes("historia") || lowerCasePrompt.includes("antiguo") ||
+                           lowerCasePrompt.includes("época") || lowerCasePrompt.includes("civilización") ||
+                           lowerCasePrompt.includes("biografía") || lowerCasePrompt.includes("guerra") ||
+                           lowerCasePrompt.includes("evento histórico")) {
+                    persona = "historiador y archivista";
+                } else if (lowerCasePrompt.includes("ciencia") || lowerCasePrompt.includes("física") ||
+                           lowerCasePrompt.includes("química") || lowerCasePrompt.includes("biología") ||
+                           lowerCasePrompt.includes("espacio") || lowerCasePrompt.includes("investigación") ||
+                           lowerCasePrompt.includes("tecnología") || lowerCasePrompt.includes("experimento")) {
+                    persona = "científico y divulgador";
+                } else if (lowerCasePrompt.includes("literatura") || lowerCasePrompt.includes("poema") ||
+                           lowerCasePrompt.includes("cuento") || lowerCasePrompt.includes("novela") ||
+                           lowerCasePrompt.includes("escritura creativa") || lowerCasePrompt.includes("personaje") ||
+                           lowerCasePrompt.includes("argumento") || lowerCasePrompt.includes("analizar texto")) {
+                    persona = "crítico literario y escritor creativo";
+                } else if (lowerCasePrompt.includes("análisis de datos") || lowerCasePrompt.includes("estadísticas") ||
+                           lowerCasePrompt.includes("modelo") || lowerCasePrompt.includes("tendencias") ||
+                           lowerCasePrompt.includes("gráficos") || lowerCasePrompt.includes("informe") ||
+                           lowerCasePrompt.includes("big data")) {
+                    persona = "analista de datos y estadístico";
+                } else if (lowerCasePrompt.includes("consejo") || lowerCasePrompt.includes("orientación") ||
+                           lowerCasePrompt.includes("ayuda") || lowerCasePrompt.includes("problema") ||
+                           lowerCasePrompt.includes("sentimiento") || lowerCasePrompt.includes("motivación") ||
+                           lowerCasePrompt.includes("bienestar")) {
+                    persona = "orientador empático y de apoyo";
+                } else if (lowerCasePrompt.includes("idea") || lowerCasePrompt.includes("generar") ||
+                           lowerCasePrompt.includes("brainstorming") || lowerCasePrompt.includes("innovación") ||
+                           lowerCasePrompt.includes("solución") || lowerCasePrompt.includes("creatividad")) {
+                    persona = "generador de ideas y solucionador creativo";
+                } else if (lowerCasePrompt.includes("noticias") || lowerCasePrompt.includes("actualidad") ||
+                           lowerCasePrompt.includes("eventos") || lowerCasePrompt.includes("resumen") ||
+                           lowerCasePrompt.includes("opinión") || lowerCasePrompt.includes("debate")) {
+                    persona = "analista de noticias y resumidor";
+                } else if (lowerCasePrompt.includes("deporte") || lowerCasePrompt.includes("partido") ||
+                           lowerCasePrompt.includes("equipo") || lowerCasePrompt.includes("reglas") ||
+                           lowerCasePrompt.includes("jugador")) {
+                    persona = "experto en deportes";
+                } else if (lowerCasePrompt.includes("salud") || lowerCasePrompt.includes("bienestar") ||
+                           lowerCasePrompt.includes("nutrición") || lowerCasePrompt.includes("ejercicio") ||
+                           lowerCasePrompt.includes("síntomas") || lowerCasePrompt.includes("enfermedad")) {
+                    persona = "asesor de bienestar y salud (solo información general, no médica)";
+                }
+
+
+                const messages = [
+                    {
+                        "role": "system",
+                        "content": `Eres CognosGPT, un asistente inteligente. Tu rol principal es ser un ${persona}. Proporciona respuestas claras, detalladas, creativas, precisas y adaptadas al contexto del usuario. Siempre que sea relevante, guía al usuario paso a paso, ofrece ejemplos, y utiliza un tono que refleje tu especialidad. Tu objetivo es ser el mejor asistente posible en cada campo y brindar una experiencia de aprendizaje o resolución de problemas excepcional.`
+                    },
+                    // Añadir mensajes previos del chat actual
+                    ...currentChat.messages.map(msg => ({ role: msg.role, content: msg.content })),
+                    // Añadir el mensaje de usuario actual
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ];
+
+                const response = await fetch(OPENROUTER_API_URL, {
+                    method: "POST",
+                    headers: {
+                        "Authorization": `Bearer ${OPENROUTER_API_KEY}`,
+                        "HTTP-Referer": YOUR_SITE_URL, // Opcional. URL del sitio para rankings en openrouter.ai.
+                        "X-Title": YOUR_SITE_NAME, // Opcional. Título del sitio para rankings en openrouter.ai.
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({
+                        "model": "deepseek/deepseek-chat-v3-0324:free",
+                        "messages": messages
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorBody = await response.text();
+                    throw new Error(`Error ${response.status}: ${response.statusText} - ${errorBody}`);
+                }
+
+                const data = await response.json();
+                const aiResponseText = data.choices[0].message.content;
+
+                chatBox.removeChild(loadingDiv); // Eliminar indicador de carga
+                addMessage(aiResponseText, 'assistant'); // Agregar respuesta de la IA al chat
+                saveMessage(aiResponseText, 'assistant'); // Guardar mensaje de la IA en el historial
+
+            } catch (error) {
+                chatBox.removeChild(loadingDiv);
+                addMessage(`Error de conexión: ${error.message || 'No se pudo conectar con el servicio.'}`, 'assistant', true);
+                saveMessage(`Error de conexión: ${error.message || 'Error de conexión.'}`, 'assistant', true);
+                console.error("Error en la llamada a la API:", error);
+            }
+
+            userInput.value = ''; // Limpiar el campo de entrada
+            userInput.style.height = 'auto'; // Reiniciar la altura del textarea
+        }
+
+        // Lógica para mostrar el panel de historial
+        historyButton.addEventListener('click', () => {
+            loadChatHistory(); // Recargar siempre el historial cuando se abre
+            historyPanel.classList.add('show');
+            document.querySelector('.history-content').classList.add('scale-100', 'opacity-100');
+        });
+
+        // Cerrar el panel de historial al hacer clic fuera o en el botón de cerrar
+        historyPanel.addEventListener('click', (e) => {
+            if (e.target === historyPanel || e.target.closest('#close-history')) {
+                historyPanel.classList.remove('show');
+                document.querySelector('.history-content').classList.remove('scale-100', 'opacity-100');
+            }
+        });
+        closeHistory.addEventListener('click', () => {
+            historyPanel.classList.remove('show');
+            document.querySelector('.history-content').classList.remove('scale-100', 'opacity-100');
+        });
+
+        // Lógica para limpiar el chat actual
+        clearButton.addEventListener('click', () => {
+            const currentChatId = localStorage.getItem('currentChatId');
+            if (currentChatId) {
+                // Confirmar con un modal personalizado en lugar de alert()
+                const modal = document.createElement('div');
+                modal.className = 'fixed inset-0 bg-black/50 z-50 flex items-center justify-center';
+                modal.innerHTML = `
+                    <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl text-center max-w-sm w-11/12">
+                        <h3 class="text-xl font-semibold mb-4 text-gray-800 dark:text-gray-100">Confirmar Limpieza de Chat</h3>
+                        <p class="mb-6 text-gray-700 dark:text-gray-300">¿Estás seguro de que quieres limpiar este chat? Se eliminará de tu historial.</p>
+                        <div class="flex justify-center space-x-4">
+                            <button id="cancel-clear" class="px-5 py-2 rounded-full bg-gray-200 text-gray-800 hover:bg-gray-300 dark:bg-gray-600 dark:text-gray-200 dark:hover:bg-gray-500 transition-colors">Cancelar</button>
+                            <button id="confirm-clear" class="px-5 py-2 rounded-full bg-red-500 text-white hover:bg-red-600 transition-colors">Limpiar</button>
+                        </div>
+                    </div>
+                `;
+                document.body.appendChild(modal);
+
+                document.getElementById('cancel-clear').addEventListener('click', () => {
+                    document.body.removeChild(modal);
+                });
+
+                document.getElementById('confirm-clear').addEventListener('click', () => {
+                    deleteChat(currentChatId); // Usar la función deleteChat
+                    chatBox.innerHTML = '';
+                    localStorage.removeItem('currentChatId');
+                    document.body.removeChild(modal);
+                });
+            } else {
+                chatBox.innerHTML = '';
+                addMessage('El chat ya está vacío.', 'assistant', false);
+            }
+        });
+
+        // Alternar Tema
+        themeToggle.addEventListener('click', () => {
+            const isDark = document.body.classList.contains('dark-theme');
+            document.body.classList.toggle('light-theme', isDark);
+            document.body.classList.toggle('dark-theme', !isDark);
+
+            // Cambiar icono según el tema
+            if (!isDark) { // Cambiado a tema oscuro
+                themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z'); // Icono de luna
+            } else { // Cambiado a tema claro
+                themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z'); // Icono de sol
+            }
+        });
+
+        // Inicialización
+        window.onload = function() {
+            // Establecer el tema inicial basado en la preferencia del sistema o por defecto a claro
+            if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+                document.body.classList.remove('light-theme');
+                document.body.classList.add('dark-theme');
+                themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
+            } else {
+                document.body.classList.add('light-theme');
+                document.body.classList.remove('dark-theme');
+                themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
+            }
+            loadChatHistory();
+            userInput.focus();
+
+            // Cargar el último chat activo si existe
+            const lastChatId = localStorage.getItem('currentChatId');
+            if (lastChatId) {
+                loadChat(lastChatId);
+            } else {
+                addMessage('¡Hola! Soy CognosGPT, tu asistente inteligente. Pregúntame sobre educación, programación, historia, ciencia, o cualquier otra cosa. Intentaré adaptar mi estilo para ayudarte mejor.', 'assistant');
+            }
         };
-        localStorage.setItem('currentChatId', currentChatId);
-      }
-
-      chats[currentChatId].messages.push({ content, isUser, isError });
-      localStorage.setItem('chatHistory', JSON.stringify(chats));
-      loadChatHistory();
-    }
-
-    // Agregar mensaje al chat
-    function addMessage(content, isUser, isError = false) {
-      const messageDiv = document.createElement('div');
-      messageDiv.className = `message ${isUser ? 'user-message' : isError ? 'error-message' : 'ai-message'}`;
-      messageDiv.textContent = content;
-      chatBox.appendChild(messageDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-    }
-
-    // Mostrar indicador de carga
-    function showLoading() {
-      const loadingDiv = document.createElement('div');
-      loadingDiv.id = 'loading';
-      loadingDiv.className = 'message ai-message loading';
-      loadingDiv.textContent = 'CognosGPT está pensando';
-      chatBox.appendChild(loadingDiv);
-      chatBox.scrollTop = chatBox.scrollHeight;
-      return loadingDiv;
-    }
-
-    // Event Listeners
-    imageInput.addEventListener('change', async () => {
-      if (imageInput.files[0]) {
-        try {
-          const base64 = await imageToBase64(imageInput.files[0]);
-          imagePreview.src = base64;
-          imagePreviewContainer.classList.remove('hidden');
-        } catch (error) {
-          addMessage('Error al cargar la imagen.', false, true);
-        }
-      } else {
-        imagePreviewContainer.classList.add('hidden');
-      }
-    });
-
-    sendButton.addEventListener('click', sendMessage);
-    
-    async function sendMessage() {
-      const prompt = userInput.value.trim();
-      const file = imageInput.files[0];
-      
-      if (!prompt && !file) return;
-
-      const messageContent = prompt || 'Imagen subida';
-      addMessage(messageContent, true);
-      saveMessage(messageContent, true);
-
-      const loadingDiv = showLoading();
-
-      const message = {
-        role: 'user',
-        content: [{ type: 'text', text: prompt || '¿Qué hay en esta imagen?' }]
-      };
-
-      if (file) {
-        try {
-          const base64 = await imageToBase64(file);
-          message.content.push({
-            type: 'image_url',
-            image_url: { url: base64 }
-          });
-        } catch (error) {
-          chatBox.removeChild(loadingDiv);
-          addMessage('Error al procesar la imagen.', false, true);
-          saveMessage('Error al procesar la imagen.', false, true);
-          return;
-        }
-      }
-
-      try {
-        const response = await fetch(API_URL, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${API_KEY}`,
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            model: 'deepseek/deepseek-chat-v3-0324:free',
-            messages: [{
-              role: 'system',
-              content: `Eres CognosGPT, un asistente especializado en educación, 
-                        programación y análisis de imágenes. Proporciona respuestas 
-                        claras, detalladas y adaptadas al contexto del usuario.`
-            }, message]
-          })
-        });
-
-        if (!response.ok) {
-          throw new Error(`Error ${response.status}: ${response.statusText}`);
-        }
-
-        const data = await response.json();
-        const aiResponse = data.choices[0].message.content;
-        
-        chatBox.removeChild(loadingDiv);
-        addMessage(aiResponse, false);
-        saveMessage(aiResponse, false);
-      } catch (error) {
-        chatBox.removeChild(loadingDiv);
-        addMessage(`Error: ${error.message || 'No se pudo conectar con el servicio'}`, false, true);
-        saveMessage(`Error: ${error.message || 'Error de conexión'}`, false, true);
-      }
-
-      userInput.value = '';
-      imageInput.value = '';
-      imagePreviewContainer.classList.add('hidden');
-    }
-
-    historyButton.addEventListener('click', () => {
-      historyPanel.classList.add('show');
-    });
-
-    historyPanel.addEventListener('click', (e) => {
-      if (e.target === historyPanel) {
-        historyPanel.classList.remove('show');
-      }
-    });
-
-    closeHistory.addEventListener('click', () => {
-      historyPanel.classList.remove('show');
-    });
-
-    clearButton.addEventListener('click', () => {
-      chatBox.innerHTML = '';
-      const currentChatId = localStorage.getItem('currentChatId');
-      
-      if (currentChatId) {
-        const chats = JSON.parse(localStorage.getItem('chatHistory') || '{}');
-        delete chats[currentChatId];
-        localStorage.setItem('chatHistory', JSON.stringify(chats));
-        localStorage.removeItem('currentChatId');
-        loadChatHistory();
-      }
-      
-      imagePreviewContainer.classList.add('hidden');
-    });
-
-    // 2. CORRECCIÓN DEL BOTÓN DE TEMA
-    themeToggle.addEventListener('click', () => {
-      const isDark = document.body.classList.toggle('light-theme');
-      document.body.classList.toggle('dark-theme', !isDark);
-      
-      // Cambiar icono según el tema
-      if (document.body.classList.contains('dark-theme')) {
-        themePath.setAttribute('d', 'M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z');
-      } else {
-        themePath.setAttribute('d', 'M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z');
-      }
-    });
-
-    userInput.addEventListener('keydown', (e) => {
-      if (e.ctrlKey && e.key === 'Enter') {
-        sendMessage();
-      }
-    });
-
-    // Inicialización
-    loadChatHistory();
-    userInput.focus();
-  </script>
+    </script>
 </body>
 </html>
+
